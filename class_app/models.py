@@ -3,7 +3,6 @@ from student_app.models import Student
 from django.core import validators as v
 from .validators import validate_subject_format, validate_professor_name, clean
 
-# Create your models here.
 class Class(models.Model):
     subject = models.CharField(max_length=255, unique=True, validators=[validate_subject_format])
     professor = models.CharField(max_length=255, validators=[validate_professor_name])
@@ -19,3 +18,6 @@ class Class(models.Model):
     def drop_a_student(self, student_id):
         student = Student.objects.get(pk=student_id)
         self.students.remove(student)
+        
+    def clean(self):
+        clean(self.students)

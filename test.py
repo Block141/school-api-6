@@ -1,12 +1,15 @@
 from django.test import TestCase
-from .models import Student
+from student_app.models import Student
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.db.utils import DataError
+from class_app.models import Class
+from grade_app.models import Grade
 
 ## PART I
 class Test_student(TestCase):
     def setUp(self):
-        curr_student = Student.objects.create(
+        Student.objects.create(
             name="Johnny H. Harris",
             student_email="thisIsMyEmail@school.com",
             personal_email="thisIsMyEmail@gmail.com",
@@ -14,7 +17,7 @@ class Test_student(TestCase):
             locker_combination="11-11-11",
             good_student=False,
         )
-        curr_student.save()
+        Class.objects.create(subject="Python", professor="Mrs. Zaynab")
 
     def test_001_student_with_improper_good_student_field(self):
         try:
@@ -113,10 +116,12 @@ class Test_student(TestCase):
             locker_combination="12-12-12",
             good_student=True,
         )
+        new_student.save()
+        new_student.classes.add(6)
         new_student.full_clean()
         self.assertIsNotNone(new_student)
 
-# PART II
+    # PART II
 
     def test_007_student_with_repeated_student_email(self):
         try:
@@ -132,7 +137,7 @@ class Test_student(TestCase):
             self.fail()
         except IntegrityError as e:
             # print(e)
-            self.assert_("student_app_student_student_email_992dd5ff_uniq" in str(e))
+            self.assert_("student_app_student_student_email_key" in str(e))
 
     def test_008_student_with_repeated_personal_email(self):
         try:
@@ -148,7 +153,7 @@ class Test_student(TestCase):
             self.fail()
         except IntegrityError as e:
             # print(e)
-            self.assert_("student_app_student_personal_email_faca1809_uniq" in str(e))
+            self.assert_("student_app_student_personal_email_key" in str(e))
 
     def test_009_student_with_repeated_locker_number(self):
         try:
@@ -164,7 +169,7 @@ class Test_student(TestCase):
             self.fail()
         except IntegrityError as e:
             # print(e)
-            self.assert_("student_app_student_locker_number_aea52171_uniq" in str(e))
+            self.assert_("student_app_student_locker_number" in str(e))
 
     def test_010_student_utilizing_default_values(self):
         new_student = Student.objects.create(
@@ -172,11 +177,12 @@ class Test_student(TestCase):
             student_email="mav@school.com",
             personal_email="mav@gmail.com",
         )
+        new_student.save()
+        new_student.classes.add(10)
         new_student.full_clean()
         self.assertIsNotNone(new_student)
 
-
-## PART III
+    ## PART III
 
     def test_011_student_with_improper_name_format(self):
         try:
@@ -189,8 +195,11 @@ class Test_student(TestCase):
             self.fail()
         except ValidationError as e:
             # print(e.message_dict)
-            self.assert_('Name must be in the format "First Middle Initial. Last"' in e.message_dict['name'])
-    
+            self.assert_(
+                'Name must be in the format "First Middle Initial. Last"'
+                in e.message_dict["name"]
+            )
+
     def test_012_student_with_improper_student_email(self):
         try:
             new_student = Student.objects.create(
@@ -202,21 +211,26 @@ class Test_student(TestCase):
             self.fail()
         except ValidationError as e:
             # print(e.message_dict)
-            self.assert_('Email must be from school domain' in e.message_dict['student_email'])
-    
+            self.assert_(
+                "Email must be from school domain" in e.message_dict["student_email"]
+            )
+
     def test_013_student_with_improper_locker_combination(self):
         try:
             new_student = Student.objects.create(
                 name="Maverick H. Macconnel",
                 student_email="mav@school.com",
                 personal_email="mav@gmail.com",
-                locker_combination = "zz-234-p1"
+                locker_combination="zz-234-p1",
             )
             new_student.full_clean()
             self.fail()
         except ValidationError as e:
             # print(e.message_dict)
-            self.assert_('Combination must be in the format "12-12-12"' in e.message_dict['locker_combination'])
+            self.assert_(
+                'Combination must be in the format "12-12-12"'
+                in e.message_dict["locker_combination"]
+            )
 
     def test_014_student_with_low_locker_number(self):
         try:
@@ -224,24 +238,148 @@ class Test_student(TestCase):
                 name="Maverick H. Macconnel",
                 student_email="mav@school.com",
                 personal_email="mav@gmail.com",
-                locker_number = 0
+                locker_number=0,
             )
             new_student.full_clean()
             self.fail()
         except ValidationError as e:
             # print(e.message_dict)
-            self.assert_('Ensure this value is greater than or equal to 1.' in e.message_dict['locker_number'])
-        
-    def test_014_student_with_high_locker_number(self):
+            self.assert_(
+                "Ensure this value is greater than or equal to 1."
+                in e.message_dict["locker_number"]
+            )
+
+    def test_015_student_with_high_locker_number(self):
         try:
             new_student = Student.objects.create(
                 name="Maverick H. Macconnel",
                 student_email="mav@school.com",
                 personal_email="mav@gmail.com",
-                locker_number = 350
+                locker_number=350,
             )
             new_student.full_clean()
             self.fail()
         except ValidationError as e:
             # print(e.message_dict)
-            self.assert_('Ensure this value is less than or equal to 200.' in e.message_dict['locker_number'])
+            self.assert_(
+                "Ensure this value is less than or equal to 200."
+                in e.message_dict["locker_number"]
+            )
+
+    # PART IV
+
+    def test_016_student_missing_classes(self):
+        try:
+            new_student = Student.objects.create(
+                name="Maverick H. Macconnel",
+                student_email="mav@school.com",
+                personal_email="mav@gmail.com",
+            )
+            new_student.full_clean()
+            self.fail()
+        except ValidationError as e:
+            self.assert_(
+                "A student must be enrolled in between 1 and 7 classes."
+                in e.message_dict["__all__"]
+            )
+
+    def test_017_student_with_too_many_classes(self):
+        try:
+            new_student = Student.objects.create(
+                name="Maverick H. Macconnel",
+                student_email="mav@school.com",
+                personal_email="mav@gmail.com",
+            )
+            new_student.save()
+            for idx in range(9):
+                a_class = Class.objects.create(
+                    subject=f"Python{idx}", professor="Mrs. Ana"
+                )
+                a_class.save()
+                new_student.classes.add(a_class.id)
+            new_student.full_clean()
+            self.fail()
+        except ValidationError as e:
+            # print(e.message_dict)
+            self.assert_(
+                "A student must be enrolled in between 1 and 7 classes."
+                in e.message_dict["__all__"]
+            )
+
+    def test_018_Class_with_improper_subject_format(self):
+        try:
+            a_class = Class.objects.create(
+                subject="a subject", professor="Professor Ben"
+            )
+            a_class.save()
+            a_class.add_a_student(Student.objects.all().first().id)
+            a_class.full_clean()
+            self.fail()
+        except ValidationError as e:
+            # print(e.message_dict)
+            self.assert_(
+                "Subject must be in title case format." in e.message_dict["subject"]
+            )
+
+    def test_019_Class_with_improper_professor_format(self):
+        try:
+            a_class = Class.objects.create(subject="Math", professor="Mr. Ben")
+            a_class.save()
+            a_class.add_a_student(Student.objects.all().first().id)
+            a_class.full_clean()
+            self.fail()
+        except ValidationError as e:
+            # print(e.message_dict)
+            self.assert_(
+                'Professor name must be in the format "Professor Adam".'
+                in e.message_dict["professor"]
+            )
+
+    def test_020_Class_with_not_enough_students(self):
+        try:
+            a_class = Class.objects.create(subject="Math", professor="Professor Ben")
+            a_class.save()
+            a_class.full_clean()
+            self.fail()
+        except ValidationError as e:
+            # print(e)
+            self.assert_(
+                "A class must have between 1 and 30 students"
+                in e.message_dict["__all__"]
+            )
+
+    def test_021_Grade_with_proper_input(self):
+        grade = Grade.objects.create(
+            grade=98.75,
+            a_class=Class.objects.all().first(),
+            student=Student.objects.all().first(),
+        )
+        grade.full_clean()
+        self.assertIsNotNone(grade)
+
+    def test_022_Grade_with_high_grade(self):
+        try:
+            grade = Grade.objects.create(
+                grade=198.75,
+                a_class=Class.objects.all().first(),
+                student=Student.objects.all().first(),
+            )
+            grade.full_clean()
+            self.fail()
+        except ValidationError as e:
+            # print(e)
+            self.assert_('Ensure this value is less than or equal to 100.0.' in e.message_dict['grade'])
+
+
+    def test_023_Grade_with_incorrect_grade_format(self):
+        try:
+            grade = Grade.objects.create(
+                grade=1598.756,
+                a_class=Class.objects.all().first(),
+                student=Student.objects.all().first(),
+            )
+            grade.full_clean()
+            self.fail()
+        except DataError as e:
+            # print(e)
+            self.assert_('numeric field overflow' in str(e))
