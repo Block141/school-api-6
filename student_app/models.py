@@ -1,5 +1,6 @@
 from django.db import models
 from django.core import validators as v
+from django.core.exceptions import ValidationError
 from .validators import validate_name_format, validate_school_email, validate_combination_format
 
 # Create your models here.
@@ -21,3 +22,9 @@ class Student(models.Model):
     def student_status(self, student_status):
         self.good_student = student_status
         self.save()
+        
+    def clean(self):
+        if self.classes.count() < 1:
+            raise ValidationError('A student must be enrolled in between 1 and 7 classes.')
+        elif self.classes.count() > 8:
+            raise ValidationError('A student must be enrolled in between 1 and 7 classes.') 
