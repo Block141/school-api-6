@@ -6,6 +6,9 @@ from django.db.utils import DataError
 from class_app.models import Class
 from grade_app.models import Grade
 
+# Create your tests here.
+
+
 ## PART I
 class Test_student(TestCase):
     def setUp(self):
